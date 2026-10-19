@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>校園生活大冒險</title>
+<style>
+:root{color-scheme:dark;--p:rgba(22,14,10,.96);--b:#845e3c;--g:#ffd152;--t:#f5eedc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{margin:0;padding:0;box-sizing:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{height:100%;background:#060403;color:var(--t);font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;overflow:hidden}
+body{display:flex;justify-content:center}
+#w{position:relative;width:100%;max-width:430px;height:100%;background:#0d0907;overflow:hidden}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+.bx{background:var(--p);border:1.5px solid var(--b);border-radius:10px}
+button{font:inherit;font-size:12px;color:var(--t);background:rgba(44,30,20,.95);border:1.5px solid var(--b);border-radius:8px;padding:7px 10px;text-align:left}
+button:active,.on{background:#b8860b;color:#1a1005;border-color:var(--g)}
+#ui{position:absolute;inset:0;pointer-events:none;z-index:20}#ui>*{pointer-events:auto}
+#hud{position:absolute;top:6px;left:6px;right:6px;display:flex;gap:5px;font-size:11px;line-height:1.4}
+#hud div{padding:4px 8px}#tm{color:var(--g);font-weight:800;min-width:96px}
+#qt{position:absolute;top:70px;left:6px;right:6px;display:flex;gap:4px;overflow-x:auto}
+#qt button{flex:none;border-radius:14px;padding:4px 9px;font-size:11px}
+.ct{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;align-items:flex-end;pointer-events:none!important}
+.ct>*{pointer-events:auto}
+#dp{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,42px);gap:3px}
+#dp button{width:42px;height:42px;text-align:center;padding:0;font-size:15px}
+#ac{width:62px;height:62px;border-radius:50%;font-size:25px;text-align:center;padding:0;background:radial-gradient(circle at 35% 30%,#ffd700,#b8860b)}
+#sd{position:absolute;right:6px;bottom:84px;display:flex;flex-direction:column;gap:6px}#sd button{width:40px;height:40px;padding:0;text-align:center}
+#dlg{position:absolute;left:8px;right:8px;bottom:10px;max-height:62%;overflow:auto;display:none;padding:12px;z-index:40}
+#dw{color:#70c0e8;font-weight:800;font-size:13px;margin-bottom:5px}#dt{font-size:13px;line-height:1.6;white-space:pre-wrap}
+#do{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#fi{display:none;gap:6px;margin-top:8px}#fi input{flex:1}
+input{font:inherit;font-size:13px;color:var(--t);background:#1a110c;border:1.5px solid var(--b);border-radius:8px;padding:7px}
+#ts{position:absolute;top:104px;left:50%;transform:translateX(-50%);padding:6px 14px;font-size:12px;color:var(--g);z-index:60;display:none;white-space:nowrap}
+#st{position:absolute;inset:0;z-index:100;overflow:auto;padding:14px;background:linear-gradient(#2a1a10,#0e0805)}
+#st h1{color:var(--g);text-align:center;font-size:21px}#st p{text-align:center;color:#c8b090;font-size:12px;margin:3px 0 10px}
+#st .bx{padding:10px;margin-bottom:8px}#st label{display:block;font-size:12px;color:#d8b888;margin:7px 0 3px}
+.cr{display:flex;flex-wrap:wrap;gap:5px}.bd{display:flex;align-items:center;gap:5px;font-size:12px;margin:4px 0}.bd input{width:52px}
+#go{width:100%;text-align:center;font-size:16px;font-weight:900;background:linear-gradient(#ffd700,#b8860b);color:#2a1805;border-radius:22px;padding:11px}
+</style></head><body><div id="w"><canvas id="cv" width="360" height="640"></canvas>
+<div id="ui"><div id="hud"><div class="bx" id="tm"></div><div class="bx" id="bars" style="flex:1"></div></div>
+<div id="qt"></div>
+<div id="sd"><button id="snd">🔊</button><button id="mn">📚</button></div>
+<div class="ct"><div id="dp"><button style="grid-area:1/2" data-d="u">▲</button><button style="grid-area:2/1" data-d="l">◀</button><button style="grid-area:2/3" data-d="r">▶</button><button style="grid-area:3/2" data-d="d">▼</button></div><button id="ac">✋</button></div>
+<div class="bx" id="dlg"><div id="dw"></div><div id="dt"></div><div id="do"></div><div id="fi"><input id="inp" placeholder="自己輸入想說的話…" maxlength="60"><button id="sb">送出</button></div></div>
+<div class="bx" id="ts"></div></div>
+<div id="st"><h1>校園生活大冒險</h1><p>溫馨長輩守護者版・今天也不能倒下！</p><div id="cf"></div><button id="go">進入輔導室</button><button id="ct" style="display:none;width:100%;margin-top:8px;text-align:center">▶ 繼續上次的遊戲</button></div></div>
+<script>
+const $=i=>document.getElementById(i),cv=$('cv'),c=cv.getContext('2d'),W=360,H=640,N=10;
+const HC=['#9e5d32','#1a1a1a','#e8c25a','#c0392b'],PETS=['🐰','🐱','🐶','🦔','🐹','🐊','🐟','🦖'];
+const FIT=[['#f5f6fa','#273c75','#d63031'],['#e74c3c','#2c3e50','#f1c40f'],['#8a5a3b','#2d3436','#dfe6e9']];
+const WX={sunny:'☀️晴天',cloudy:'☁️多雲',rain:'🌧️降雨90%(模擬)',typhoon:'🌀颱風警報(模擬)'};
+let S=null,room='counsel',pl={x:5,y:7,tx:null,ty:null},pt={x:4,y:8},dOpen=false,near=null,td={},shake=0,F=0,cur=null,sp=null,cfg={g:0,hs:0,hc:0,fit:0,per:0,pet:0};
+const bs=(x,y,h,col)=>[x,y,.7,.7,h,col];
+const SC={
+counsel:{n:'🛋️輔導室',fl:'#8a4f2a',wl:['#6b3a1f','#7d4626'],win:1,b:[[1,.5,2,1,4,'#5a2f16'],[3,.5,2,1,4,'#5a2f16'],[.5,3,1.6,2.6,1.3,'#9a5a30'],[7,.4,2.5,1,1.2,'#d9b48a'],[3.5,5,2,1.5,.7,'#b36a2e'],[2.6,5.2,.8,.8,.9,'#c9a27a'],[3,6.7,.8,.8,.9,'#c9a27a'],[5.9,6.3,.8,.8,.9,'#c9a27a'],bs(5.8,.5,1.8,'#e8e8e8'),bs(9,3.5,1.6,'#2e7d32'),bs(.5,8.8,1.6,'#2e7d32')]},
+clinic:{n:'🏥保健室',fl:'#cfe8d8',wl:['#c9d9e2','#e3edf1'],win:1,b:[[.5,1,1.5,3,.8,'#f2f2f2'],[6,.3,2.5,.8,2.4,'#aab7b8'],[4,3,2.5,1.2,.9,'#a04000'],bs(8.6,3,2,'#34495e'),bs(9,8.5,1.2,'#2e7d32')]},
+corridor:{n:'🏫走廊',fl:'#7d8c7b',wl:['#9aa89a','#aebbad'],win:1,b:[[1,.3,.9,.8,2.3,'#d2b48c'],[2.2,.3,.9,.8,2.3,'#d2b48c'],[3.4,.3,.9,.8,2.3,'#d2b48c'],[3,6,3.5,1,.6,'#8b6b4a'],bs(9,8.5,1.6,'#2e7d32')]},
+courtyard:{n:'🌳中庭',fl:'#3f9150',wl:['#7fb3d5','#a9cce3'],b:[[.8,1,1,1,3.4,'#2e6b34'],[8,6,1,1,3.2,'#2e6b34'],[6,1.5,2.8,1,.7,'#f1c40f'],[1,6.5,2,1,.6,'#8b6b4a']]},
+gate:{n:'🚪校門',fl:'#7f8c8d',wl:['#34495e','#3d566e'],b:[[6.5,1,3,2.2,2.4,'#2c3e50'],[0,8.8,4,.3,.7,'#f39c12'],bs(1,1,1.8,'#2e7d32')]}};
+const NP=[
+{id:'teach',nm:'輔導 王老師',r:'counsel',x:3,y:3,c:'#6c5ce7',av:'👩‍🏫',hr:'#3b2a20'},
+{id:'nurse',nm:'保健室 林阿姨',r:'clinic',x:5,y:5,c:'#e74c3c',av:'👩‍⚕️',hr:'#555555'},
+{id:'xiu',nm:'校工 秀枝阿姨',r:'courtyard',x:3,y:4,c:'#f39c12',av:'🧹',hr:'#777777'},
+{id:'de',nm:'校工 德伯',r:'corridor',x:6,y:4,c:'#795548',av:'🔨',hr:'#cccccc'},
+{id:'ming',nm:'警衛 大明叔叔',r:'gate',x:4,y:5,c:'#2980b9',av:'👮',hr:'#222222'},
+{id:'emma',nm:'同學 Emma',r:'courtyard',x:6,y:7,c:'#fd79a8',av:'👧',hr:'#e8c25a'}];
+NP.forEach(g=>{g.tx=g.x;g.ty=g.y;g.w=0});
+const IN=[['stranger',/陌生|帶我|糖果|跟蹤|壞人|綁/],['pain',/痛|不舒服|暈|吐|發燒|受傷|流血/],['exam',/考試|緊張|考完|測驗/],['eng',/英文|單字|english/i],['math',/數學|算/],['tired',/累|睏|沒力/],['sad',/難過|不開心|被罵|哭|霸凌|欺負/],['rain',/雨|颱風|天氣|地震/],['bday',/生日/],['thx',/謝謝|辛苦/],['hi',/早|你好|嗨|哈囉/]];
+const R={
+pain:{'*':['{n}，哪裡不舒服？先告訴老師或保健室阿姨，不要忍著。','先坐下休息，慢慢說：是從什麼時候開始的？'],nurse:['肚子痛的話，先告訴阿姨：是悶痛還是刺痛？有沒有吐、發燒？先躺下，阿姨幫你量體溫，必要時聯絡家長。','頭暈要先坐好或躺下，不要硬撐。阿姨幫你量體溫、倒溫水，嚴重就請爸媽帶你看醫生。']},
+exam:{'*':['先別急著一次讀完，{n}最不熟的是哪一科？我們把時間分一分。','緊張很正常。先深呼吸三次，再列出三個最重要的重點。考完記得回來告訴我結果！']},
+eng:{'*':['單字放進句子比只背中文有效。例如 health 是名詞，healthy 是形容詞。點「📘 英文」練一題吧！'],emma:['Let’s practice! What would you like to eat?']},
+stranger:{'*':['不跟陌生人走，也不拿他給的東西。大聲喊、跑到有大人的地方，再告訴老師或警衛。'],ming:['有人要帶你離開學校？絕對不要跟他走！大聲呼救，跑來警衛室找叔叔。家人要接你，也會先聯絡學校。','陌生人給糖果或玩具點數都不要接。記住：拒絕、離開、告訴大人。']},
+tired:{'*':['累了就休息一下，喝點水。'],nurse:['來小床躺一下吧，睡不夠最容易沒精神。今晚早點睡好嗎？']},
+sad:{'*':['{n}，謝謝你願意說。發生什麼事？是誰、在哪裡？我們一起想辦法，也要告訴老師和爸媽。']},
+rain:{'*':['下雨天地板濕滑，慢慢走。有颱風或地震，聽老師和廣播指示，不要慌張。'],xiu:['走廊剛拖過又下雨，很滑！慢慢走，看到排水口堵住要告訴阿姨喔。']},
+math:{'*':['數學要說出「為什麼這樣算」。點「🔢 數學」試一題吧！']},
+bday:{'*':['生日要記得跟家人朋友說聲祝福！可以準備一張小卡片。']},
+thx:{'*':['不客氣，{n}真有禮貌！','看到你這麼懂事，我很開心。']},
+hi:{'*':['{n}你好呀！今天心情如何？','早安！今天有沒有想問的事？']},
+unk:{'*':['{n}，可以再多說一點嗎？是學校、家裡，還是朋友的事？','嗯，我想聽你多說一些。最困擾你的是哪一部分？']}};
+const EN=[['Eating fruit is good for your ___.',['health','healthy','healthily'],'good for 後面接名詞，health 是名詞。'],['She is a ___ girl. She eats fruit every day.',['healthy','health','healthily'],'修飾名詞 girl 要用形容詞 healthy。'],['He sings ___. Everyone likes it.',['beautifully','beauty','beautiful'],'修飾動詞 sings 用副詞 beautifully。'],['The movie is very ___.',['interesting','interested','interest'],'電影「有趣的」用 interesting；人「感到有興趣」才用 interested。'],['I am ___ in science.',['interested','interesting','interest'],'be interested in：對…感興趣。'],['He plays basketball ___.',['well','good','busy'],'修飾動詞 plays 要用副詞 well。'],['A: What would you like to eat? B: ___',['A sandwich, please.','I like blue.','Yes, I do.'],'What would you like to eat? 問想吃什麼，要回答食物。'],['Have you finished your homework ___?',['yet','ago','tomorrow'],'yet 用在問句或否定句，表示「已經…了嗎」。']];
+const LW=[['restaurant','餐廳'],['hospital','醫院'],['dictionary','字典'],['lazy','懶惰的'],['polite','有禮貌的'],['station','車站'],['finally','終於'],['honest','誠實的']];
+const SCI=[['影子什麼時候最長？',['早晨或傍晚（太陽低）','中午','沒有太陽時'],'太陽越低，影子越長。'],['水加熱變成水蒸氣，是什麼變化？',['液態變氣態','氣態變液態','固態變液態'],'沸騰或蒸發都是液態變氣態。'],['剛拖過的地板為什麼容易滑倒？',['水讓摩擦力變小','重力變小','磁力變大'],'摩擦力小，鞋底抓不住地面。'],['室內地震時最安全的動作是？',['趴下、掩護、穩住','搭電梯','衝到窗邊'],'保護頭頸，遠離玻璃，不搭電梯。'],['磁鐵最容易吸住？',['鐵製迴紋針','塑膠尺','橡皮擦'],'磁鐵吸引含鐵的金屬。']];
+const TH=[{q:'連日豪雨，中庭積水、排水口被落葉堵住。你是今天的小隊長，會怎麼做？',o:[['先圍起濕滑區域，並通知校工處理',2],['自己用手去清排水口',0],['不管它，反正會退',0]]},{q:'學校規定不能帶手機，你覺得不公平。如果你是校長，為什麼可能訂這個規定？',o:[['擔心上課分心、手機遺失，也可設計緊急聯絡方式',2],['校長只是想為難學生',0],['不知道，照做就好',1]]},{q:'同學說「網路上說喝某種飲料一天能長高10公分」。你會？',o:[['問他資料來源，並查醫師或衛生單位的資訊',2],['馬上買來喝',0],['直接說他說謊',1]]}];
+const sh=(h,k)=>'#'+[1,3,5].map(i=>Math.min(255,parseInt(h.substr(i,2),16)*k|0).toString(16).padStart(2,'0')).join('');
+const P2=(x,y,z=0)=>[180+(x-y)*18,250+(x+y)*9-z*22];
+const q=(a,col)=>{c.fillStyle=col;c.beginPath();a.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.fill()};
+let ac;const tn=(f,d)=>{if(!S||!S.snd)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.setValueAtTime(.06,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}};
+const sf=n=>n=='bad'?tn(200,.25):[523,784].forEach((f,i)=>setTimeout(()=>tn(f,.12),i*70));
+const spk=(t,l='zh-TW')=>{if(!S||!S.snd||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/[「」]/g,''));u.lang=l;speechSynthesis.speak(u)}catch(e){}};
+const toast=m=>{const t=$('ts');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2400)};
+const save=()=>{try{localStorage.setItem('cla3',JSON.stringify(S))}catch(e){}};
+const pk=(k,a)=>{const u=S.used[k]=S.used[k]||[];let f=a.map((_,i)=>i).filter(i=>!u.includes(i));if(!f.length){u.length=0;f=a.map((_,i)=>i)}const i=f[Math.random()*f.length|0];u.push(i);return a[i]};
+const blk=(x,y)=>x<.3||y<.3||x>N-.3||y>N-.3||SC[room].b.some(([a,b,w,d])=>x>a-.3&&x<a+w+.3&&y>b-.3&&y<b+d+.3);
+// ---- 對話 ----
+function dlg(who,tx,opts,g){dOpen=true;$('dlg').style.display='block';$('dw').textContent=who;$('dt').textContent=tx;const o=$('do');o.innerHTML='';(opts||[]).forEach(([t,f])=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{sf('ok');f()};o.appendChild(b)});const x=document.createElement('button');x.textContent='✖ 關閉';x.onclick=cls;o.appendChild(x);$('fi').style.display=g?'flex':'none';cur=g;if(tx&&!g)spk(tx.split('\n')[0].slice(0,80));$('dlg').scrollTop=0}
+function cls(){dOpen=false;cur=null;$('dlg').style.display='none';save()}
+function reply(g,tx){let it='unk';for(const[k,r]of IN)if(r.test(tx)){it=k;break}if(it=='exam')S.mem.exam=S.day;S.rel[g.id]=(S.rel[g.id]||0)+(S.per==0?2:1);const o=R[it];return pk(g.id+it,o[g.id]||o['*']).replace('{n}',S.name)}
+function greet(g){const l=[];if(S.mem.exam!=null&&S.mem.exam<S.day){delete S.mem.exam;return '上次你說考試很緊張，考得怎麼樣？如果有不會的題目，我們一起找原因。'}
+if(S.wx=='rain'||S.wx=='typhoon')l.push('外面'+(S.wx=='rain'?'下雨':'有颱風')+'，{n}路上有沒有小心？');
+if(S.t>960)l.push('快放學了，{n}今天過得如何？');
+if((S.rel[g.id]||0)>=6)l.push('{n}，又來啦！我們已經是老朋友囉。');
+l.push('{n}早安！今天想聊什麼？','嗨，{n}，有什麼事要幫忙嗎？');return pk(g.id+'g',l).replace('{n}',S.name)}
+function chips(g){const a=['我今天很緊張，要考試','我有點累','如果有陌生人找我怎麼辦'].map(t=>['💬 '+t,()=>dlg(g.av+' '+g.nm,reply(g,t),chips(g),g)]);
+if(g.id=='teach'||g.id=='emma')a.unshift(['📘 英文練習',()=>quiz('英文')],['🔢 數學推理',()=>quiz('數學')],['🔬 科學小學堂',()=>quiz('科學')],['💭 思考任務',think]);
+if(g.id=='nurse')a.unshift(['🛏️ 躺下休息（精力回滿）',()=>{S.en=100;S.mo=Math.min(100,S.mo+10);S.t+=10;dlg('林阿姨','睡得好嗎？精神好多了吧！',chips(g),g)}]);return a}
+function talk(g){dlg(g.av+' '+g.nm,greet(g),chips(g),g)}
+function send(){const v=$('inp').value.trim();if(!v||!cur)return;$('inp').value='';
+if(cur.id=='spell'){const ok=v.toLowerCase()==sp;if(ok){S.st+=S.per==1?4:2;sf('ok')}else sf('bad');return dlg(ok?'✅ 拼對了！':'💡 正確拼法：'+sp,ok?'很棒！':'把單字放進句子練習：I go to the '+sp+'.',[['再來一題',()=>quiz('英文')]])}
+const g=cur;dlg(g.av+' '+g.nm,reply(g,v),chips(g),g)}
+// ---- 學習 ----
+function ask(qq,k){const a=qq.o.map((t,i)=>[t,i]).sort(()=>Math.random()-.5);dlg('📚 '+k,qq.q,a.map(([t,i])=>[t,()=>{const ok=i==0;if(ok){S.st+=S.per==1?4:2;sf('ok')}else sf('bad');S.en=Math.max(0,S.en-(S.per==2?1:2));dlg(ok?'✅ 答對了！':'💡 再想想',(ok?'':'正確答案：'+qq.o[0]+'。')+qq.e,[['再來一題',()=>quiz(k)]])}]));if(qq.sp)spk(qq.sp,'en-US')}
+function mq(){const R=n=>Math.random()*n|0,r=Math.random();
+if(r<.4){const a=2+R(8),d=2+R(5),s=[0,1,2,3].map(i=>a+d*i),n=s[3]+d;return{q:`規律：${s.join('、')}、？`,o:[n,n+1,n-1],e:`每次加 ${d}，所以下一個是 ${n}。`}}
+if(r<.75){const p=5+R(20),n=2+R(4),t=p*n;return{q:`買 ${n} 個 ${p} 元的麵包，付 100 元，要找多少元？`,o:[100-t,t+1,100-p],e:`先算 ${p}×${n}=${t}，再算 100−${t}=${100-t}。`}}
+return{q:'小安比小美高，小美比小華高。誰最矮？',o:['小華','小安','小美'],e:'小安>小美>小華，所以小華最矮。想想看：你是怎麼推出來的？'}}
+function quiz(k){const R=a=>a[Math.random()*a.length|0];
+if(k=='數學')return ask(mq(),k);
+if(k=='科學'){const s=R(SCI);return ask({q:s[0],o:s[1],e:s[2]},k)}
+const r=Math.random();
+if(r<.45){const e=R(EN);return ask({q:e[0],o:e[1],e:e[2]},k)}
+const w=R(LW);
+if(r<.8){const o=[w[1],...LW.filter(x=>x!=w).sort(()=>Math.random()-.5).slice(0,2).map(x=>x[1])];return ask({q:'🔊 聽單字，選出中文意思，再大聲跟讀三次。',o,e:w[0]+' = '+w[1]+'。（跟讀無法由瀏覽器評分，請自己對照發音）',sp:w[0]},k)}
+sp=w[0];dlg('✏️ 拼字','中文：'+w[1]+'\n提示：'+w[0][0]+' 開頭，共 '+w[0].length+' 個字母',[['🔊 聽發音',()=>spk(w[0],'en-US')]],{id:'spell'});spk(w[0],'en-US')}
+function think(){const s=TH[Math.random()*TH.length|0];dlg('💭 思考任務',s.q,s.o.map(([t,sc])=>[t,()=>dlg('💭 說說理由','你選了：'+t+'\n你的理由是？',[['因為這樣比較安全、有根據',2],['因為最快最省事',1],['因為大家都這樣',0]].map(([r,rs])=>[r,()=>{const n=sc+rs;S.st+=n;dlg(n>=4?'🌟 推理很棒':n>=2?'👍 不錯':'🤔 換個角度',n>=4?'你有考慮安全與證據。再想一步：如果情況改變，你會通知誰？怎麼確認大家都安全？':n>=2?'有一部分很好。想想：誰會受到影響？還有別的做法嗎？':'沒關係，答錯不可怕。問問自己：我有什麼證據？別人的立場是什麼？',[['再一題',think]])}]))]))}
+function quake(){shake=2500;sf('bad');dlg('⚠️ 地震！（遊戲模擬演練）','畫面劇烈搖晃！你在教室裡，要怎麼做？',[['趴下、掩護（躲到堅固桌下）、穩住（抓住桌腳）',1],['衝去搭電梯下樓',0],['站在窗邊看發生什麼事',0],['慌張地到處亂跑',0]].map(([t,ok])=>[t,()=>{S.st+=ok?5:0;dlg(ok?'👏 正確！':'⚠️ 太危險了',ok?'保護頭頸，等搖晃停止再依指示有秩序疏散。':'警衛叔叔和林阿姨趕來提醒：地震時不能搭電梯、不要靠近窗戶、不要亂跑。正確是趴下、掩護、穩住！',[])}]))}
+function newDay(){S.day++;S.t=480;S.en=Math.min(100,S.en+35);S.sent={};const r=Math.random();S.wx=r<.5?'sunny':r<.7?'cloudy':r<.9?'rain':'typhoon';S.ev=Math.random()<.5?{t:560+Math.random()*300|0}:null;cls();
+const d=new Date(S.d0+S.day*864e5),m=d.getMonth()+1,dd=d.getDate(),nm=['你','媽媽','爸爸','Emma'],hit=S.bd.map((b,i)=>b&&b[0]==m&&b[1]==dd?i:-1).filter(i=>i>=0);
+if(hit.length)dlg('🎂 生日快樂！','今天是'+hit.map(i=>nm[i]=='你'?'你自己':nm[i]).join('、')+'的生日！'+(hit[0]==0?'祝你生日快樂！':'要不要寫一張小卡片？'),[['✍️ 寫卡片（心情+15、學力星+3）',()=>{S.mo=Math.min(100,S.mo+15);S.st+=3;cls();toast('收到卡片的人一定很開心！')}]]);
+else if(S.wx=='typhoon')dlg('🌀 颱風警報（遊戲模擬）','氣象署發布颱風警報（這是遊戲模擬，非真實警報）。媽媽傳來訊息：「颱風要來了，放學後直接回家！」你要做什麼？',[['提醒同學關緊窗戶、收好陽台盆栽',()=>{S.st+=3;cls()}],['放學後直接回家，不在外逗留',()=>{S.st+=3;cls()}]]);
+else toast('第'+(S.day+1)+'天・'+WX[S.wx]);save()}
+// ---- 繪圖 ----
+function bx([x,y,w,d,h,col]){q([P2(x,y,h),P2(x+w,y,h),P2(x+w,y+d,h),P2(x,y+d,h)],sh(col,1.12));q([P2(x,y+d),P2(x+w,y+d),P2(x+w,y+d,h),P2(x,y+d,h)],sh(col,.75));q([P2(x+w,y),P2(x+w,y+d),P2(x+w,y+d,h),P2(x+w,y,h)],sh(col,.55))}
+function ch(x,y,k,nm){const[X,Y]=P2(x,y);c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(X,Y,9,4,0,0,7);c.fill();
+c.fillStyle=k.b;c.fillRect(X-5,Y-9,10,8);c.fillStyle=k.t;c.fillRect(X-6,Y-19,12,11);if(k.a){c.fillStyle=k.a;c.fillRect(X-6,Y-19,12,2)}
+c.fillStyle='#ffd8b3';c.fillRect(X-5,Y-29,10,10);c.fillStyle=k.h;c.fillRect(X-6,Y-32,12,5);
+if(k.s==1){c.fillRect(X-8,Y-29,3,9);c.fillRect(X+5,Y-29,3,9)}else if(k.s==2){c.fillRect(X-6,Y-29,2,8);c.fillRect(X+4,Y-29,2,8)}
+c.fillStyle='#222';c.fillRect(X-3,Y-25,2,2);c.fillRect(X+1,Y-25,2,2);
+c.font='10px sans-serif';c.textAlign='center';const w=c.measureText(nm).width+8;c.fillStyle='rgba(20,14,10,.85)';c.fillRect(X-w/2,Y-46,w,13);c.fillStyle='#ffd152';c.fillText(nm,X,Y-36);c.textAlign='left'}
+function draw(){const s=SC[room];c.setTransform(1,0,0,1,0,0);c.fillStyle='#0d0907';c.fillRect(0,0,W,H);
+if(shake>0)c.translate((Math.random()-.5)*14,(Math.random()-.5)*14);
+q([P2(0,0),P2(0,N),P2(0,N,4.5),P2(0,0,4.5)],s.wl[0]);q([P2(0,0),P2(N,0),P2(N,0,4.5),P2(0,0,4.5)],s.wl[1]);
+if(s.win)q([P2(6,0,1.5),P2(9,0,1.5),P2(9,0,3.8),P2(6,0,3.8)],'#ffe9b0');
+for(let x=0;x<N;x++)for(let y=0;y<N;y++)q([P2(x,y),P2(x+1,y),P2(x+1,y+1),P2(x,y+1)],(x+y)%2?s.fl:sh(s.fl,.9));
+if(room=='counsel')q([P2(3,4.5),P2(7,4.5),P2(7,8),P2(3,8)],'#4a6a55');
+const L=s.b.map(b=>({d:b[0]+b[2]/2+b[1]+b[3]/2,f:()=>bx(b)}));
+NP.filter(g=>g.r==room).forEach(g=>L.push({d:g.x+g.y,f:()=>ch(g.x,g.y,{t:g.c,b:'#34495e',h:g.hr,s:0},g.av+g.nm)}));
+const f=FIT[S.fit];L.push({d:pl.x+pl.y,f:()=>ch(pl.x,pl.y,{t:f[0],b:f[1],h:HC[S.hc],s:S.hs,a:f[2]},S.name)});
+L.push({d:pt.x+pt.y,f:()=>{const[X,Y]=P2(pt.x,pt.y);c.font='16px serif';c.fillText(PETS[S.pet],X-8,Y)}});
+L.sort((a,b)=>a.d-b.d).forEach(o=>o.f());
+if(S.t>960){c.fillStyle='rgba(255,130,40,'+Math.min(.25,(S.t-960)/800)+')';c.fillRect(-20,-20,W+40,H+40)}
+if(S.wx=='rain'||S.wx=='typhoon'){c.fillStyle='rgba(20,30,50,.25)';c.fillRect(-20,-20,W+40,H+40);c.strokeStyle='rgba(180,210,255,.6)';c.beginPath();const sl=S.wx=='typhoon'?10:4;for(let i=0;i<70;i++){const x=(i*53+F*sl)%W,y=(i*97+F*14)%H;c.moveTo(x,y);c.lineTo(x-sl,y+12)}c.stroke()}}
+// ---- 更新 ----
+const DV={u:[-1,-1],d:[1,1],l:[-1,1],r:[1,-1]};
+function upd(dt){if(dOpen)return;
+S.t+=dt/1000*.9;S.en=Math.max(0,S.en-dt*.0004*(S.per==2?.5:1));
+if(S.ev&&S.t>=S.ev.t){S.ev=null;quake();return}
+if(S.t>=990&&!S.sent.m){S.sent.m=1;return dlg('📱 媽媽的簡訊','「'+S.name+'，放學了！'+(S.wx=='rain'||S.wx=='typhoon'?'外面天氣不好，記得帶傘，':'')+'直接回家，媽媽在家等你。」',[['收到！',cls]])}
+if(S.t>=1020){return dlg('🏠 放學回家','今天辛苦了！\n⭐學力星 '+S.st+'　⚡精力 '+Math.round(S.en)+'　💚心情 '+Math.round(S.mo),[['😴 睡覺，進入下一天',newDay]])}
+let mx=0,my=0;for(const k in td)if(td[k]){mx+=DV[k][0];my+=DV[k][1]}
+if(!mx&&!my&&pl.tx!=null){const dx=pl.tx-pl.x,dy=pl.ty-pl.y,dd=Math.hypot(dx,dy);if(dd>.15){mx=dx/dd;my=dy/dd}else pl.tx=null}
+if(mx||my){const l=Math.hypot(mx,my),v=.0032*dt*(S.en<10?.5:1)/l;const nx=pl.x+mx*v,ny=pl.y+my*v;if(!blk(nx,pl.y))pl.x=nx;else pl.tx=null;if(!blk(pl.x,ny))pl.y=ny;else pl.tx=null}
+pt.x+=(pl.x-.8-pt.x)*.06;pt.y+=(pl.y+.4-pt.y)*.06;
+near=null;let best=1.6;NP.filter(g=>g.r==room).forEach(g=>{const d=Math.hypot(g.x-pl.x,g.y-pl.y);if(d<best){best=d;near=g}
+if(d<1.8){return}
+if(g.w>0){g.w-=dt;return}
+const dx=g.tx-g.x,dy=g.ty-g.y,dd=Math.hypot(dx,dy);
+if(dd<.1){g.w=1500+Math.random()*3000;for(let n=0;n<20;n++){g.tx=1+Math.random()*8;g.ty=1+Math.random()*8;if(!blk(g.tx,g.ty))break}}
+else{const nx=g.x+dx/dd*.0012*dt*10,ny=g.y+dy/dd*.0012*dt*10;if(blk(nx,ny)){g.w=500;g.tx=g.x;g.ty=g.y}else{g.x=nx;g.y=ny}}});
+$('ac').textContent=near?'💬':'✋'}
+function hud(){const h=S.t/60|0,m=S.t%60|0;$('tm').innerHTML=S.name+'<br>第'+(S.day+1)+'天 '+String(h).padStart(2,'0')+':'+String(m|0).padStart(2,'0')+'<br>'+WX[S.wx];
+$('bars').innerHTML='⚡精力 '+Math.round(S.en)+'　💚心情 '+Math.round(S.mo)+'<br>⭐學力星 '+S.st+'　💰 '+S.coins+'<br>'+SC[room].n+'・'+['細心同理','自律學霸','活力運動'][S.per]+' '+PETS[S.pet]}
+let last=performance.now();
+function loop(n){const dt=Math.min(50,n-last);last=n;if(S&&$('st').style.display=='none'){upd(dt);if(shake>0)shake-=dt;F++;draw();if(F%12==0)hud()}requestAnimationFrame(loop)}
+// ---- 開場 ----
+function chip(id,arr,key,cols){const e=document.createElement('div');e.className='cr';arr.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;if(cols)b.style.color=cols[i];b.onclick=()=>{[...e.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');cfg[key]=i};e.appendChild(b)});e.children[0].click();return e}
+(function(){const cf=$('cf'),bxx=()=>{const d=document.createElement('div');d.className='bx';cf.appendChild(d);return d};
+let d=bxx();d.innerHTML='<label>🎒 冒險名字</label><input id="nm" maxlength="8" placeholder="輸入你的名字" style="width:100%">';
+[['性別','g',['👧 女生','👦 男生']],['髮型','hs',['短髮','雙馬尾','鮑伯']],['髮色','hc',['●焦糖','●黑','●亮金','●紅棕'],HC],['服裝','fit',['英倫水手服','活力體育服','秋季夾克']],['性格','per',['細心同理型（好感度成長快）','自律學霸型（學力星加倍）','活力運動型（體力消耗少）']]].forEach(([l,k,a,col])=>{const lb=document.createElement('label');lb.textContent=l;d.appendChild(lb);d.appendChild(chip(0,a,k,col))});
+d=bxx();d.innerHTML='<label>🎂 親友生日專屬設定（可留空）</label>'+['你的生日','媽媽生日','爸爸生日','朋友 Emma'].map((t,i)=>`<div class="bd">${t}：<input id="m${i}" type="number" min="1" max="12" placeholder="月">月<input id="d${i}" type="number" min="1" max="31" placeholder="日">日</div>`).join('');
+d=bxx();d.innerHTML='<label>🐾 選一隻陪你上學的寵物</label>';d.appendChild(chip(0,PETS.map((p,i)=>p+['兔','貓','狗','刺蝟','倉鼠','鱷魚','魚','恐龍'][i]),'pet'))})();
+$('go').onclick=()=>{S={name:$('nm').value.trim()||'小冒險家',g:cfg.g,hs:cfg.hs,hc:cfg.hc,fit:cfg.fit,per:cfg.per,pet:cfg.pet,bd:[0,1,2,3].map(i=>{const m=+$('m'+i).value,d=+$('d'+i).value;return m&&d?[m,d]:null}),day:-1,t:480,en:85,mo:75,st:0,coins:60,rel:{},mem:{},used:{},wx:'sunny',ev:null,sent:{},snd:1,d0:Date.now()};$('st').style.display='none';newDay();hud()};
+try{if(localStorage.getItem('cla3'))$('ct').style.display='block'}catch(e){}
+$('ct').onclick=()=>{try{S=JSON.parse(localStorage.getItem('cla3'));$('st').style.display='none';hud()}catch(e){}};
+// ---- 操作 ----
+$('ac').onclick=()=>{if(dOpen)return;if(near)talk(near);else toast(pk('tip',['微風徐徐，長輩們都在崗位上守護大家。','走過去靠近長輩，按 💬 就能聊天。','點 📚 可以練英文、數學、科學。']))};
+$('sb').onclick=send;$('inp').onkeydown=e=>{if(e.key=='Enter')send()};
+$('snd').onclick=()=>{S.snd=S.snd?0:1;$('snd').textContent=S.snd?'🔊':'🔇';if(!S.snd&&window.speechSynthesis)speechSynthesis.cancel()};
+$('mn').onclick=()=>{if(!dOpen)dlg('📚 學習選單','想練什麼？',[['📘 英文（詞性、跟讀、拼字）',()=>quiz('英文')],['🔢 數學推理',()=>quiz('數學')],['🔬 科學原理',()=>quiz('科學')],['💭 獨立思考任務',think],['📊 成長紀錄',()=>dlg('📊 成長紀錄','⭐'+S.st+'　第'+(S.day+1)+'天\n'+NP.map(g=>g.nm+' 好感 '+(S.rel[g.id]||0)).join('\n'),[])]])};
+Object.keys(SC).forEach(k=>{const b=document.createElement('button');b.textContent=SC[k].n;b.onclick=()=>{if(dOpen)return;room=k;pl.x=5;pl.y=8;pl.tx=null;toast('進入'+SC[k].n)};$('qt').appendChild(b)});
+document.querySelectorAll('#dp button').forEach(b=>{const d=b.dataset.d;b.addEventListener('pointerdown',e=>{e.preventDefault();td[d]=1;pl.tx=null});['pointerup','pointerleave','pointercancel'].forEach(v=>b.addEventListener(v,()=>td[d]=0))});
+cv.addEventListener('pointerdown',e=>{if(dOpen)return;const r=cv.getBoundingClientRect(),sx=(e.clientX-r.left)*W/r.width,sy=(e.clientY-r.top)*H/r.height,u=(sx-180)/18,v=(sy-250)/9;pl.tx=Math.max(.5,Math.min(N-.5,(u+v)/2));pl.ty=Math.max(.5,Math.min(N-.5,(v-u)/2))});
+requestAnimationFrame(loop);
+</script></body></html>
